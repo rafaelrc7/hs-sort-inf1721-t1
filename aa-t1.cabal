@@ -35,6 +35,8 @@ executable aa-t1
     build-depends:
         base ^>=4.16.0.0
       , random
+      , clock
+      , formatting
 
     hs-source-dirs:   app
     default-language: Haskell2010
