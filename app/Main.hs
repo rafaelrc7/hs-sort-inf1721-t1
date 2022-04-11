@@ -39,16 +39,17 @@ parseTests 0 _  = []
 parseTests n ls = (tLabel, tNums) : parseTests (n-1) ls'
   where (tLabel, tNums, ls') = parseTest ls
 
-executeTest :: Ord a => (String, [a]) -> IO [[a]]
+executeTest :: (String, [Int]) -> IO [[Int]]
 executeTest (label, xs) = putStrLn ("\nExecuting test " ++ label)
                          >> benchmarkAll xs
 
-benchmarkAll :: Ord a => [a] -> IO [[a]]
+benchmarkAll :: [Int] -> IO [[Int]]
 benchmarkAll xs = do
-  is <- benchmark I.sort xs (Just "Insertion Sort")
-  ms <- benchmark M.sort xs (Just "Merge Sort")
-  qs <- benchmark Q.sort xs (Just "Quick Sort")
-  return [is, ms, qs]
+  is  <- benchmark   I.sort   xs (Just "Insertion Sort")
+  ms  <- benchmark   M.sort   xs (Just "Merge Sort")
+  mqs <- benchmark   Q.msort  xs (Just "Mean Pivot Quick Sort")
+  rqs <- benchmarkIO Q.rsort' xs (Just "Random Pivot Quick Sort")
+  return [is, ms, mqs, rqs]
 
 benchmark :: Ord a => ([a] -> [a]) -> [a] -> Maybe String -> IO [a]
 benchmark sort xs msg = do
@@ -57,7 +58,18 @@ benchmark sort xs msg = do
   end   <- getTime Monotonic
   case msg of
     Just msg -> putStr (msg ++ " >> ")
-      >> fprint (timeSpecs % "\n") start end
+                  >> fprint (timeSpecs % "\n") start end
+    Nothing -> fprint (timeSpecs % "\n") start end
+  return res
+
+benchmarkIO :: Ord a => ([a] -> IO [a]) -> [a] -> Maybe String -> IO [a]
+benchmarkIO sort xs msg = do
+  start <- getTime Monotonic
+  res   <- sort xs
+  end   <- getTime Monotonic
+  case msg of
+    Just msg -> putStr (msg ++ " >> ")
+                  >> fprint (timeSpecs % "\n") start end
     Nothing -> fprint (timeSpecs % "\n") start end
   return res
 
