@@ -11,11 +11,6 @@ import qualified InsertionSort as I
 import qualified MergeSort     as M
 import qualified QuickSort     as Q
 
-data BenchmarkOps = BenchmarkOps
-  { checkResult :: Bool
-  , printResult :: Bool
-  }
-
 main :: IO ()
 main = executeInp >> putStrLn "Done."
 
@@ -40,36 +35,26 @@ parseTests n ls = (tLabel, tNums) : parseTests (n-1) ls'
   where (tLabel, tNums, ls') = parseTest ls
 
 executeTest :: (String, [Int]) -> IO [[Int]]
-executeTest (label, xs) = putStrLn ("\nExecuting test " ++ label)
-                         >> benchmarkAll xs
+executeTest (label, xs) =
+  putStrLn ("\nExecuting test " ++ label)
+    >> timeAll [(evaluate $ I.sort xs,  Just "Insertion Sort         "),
+                (evaluate $ M.sort xs,  Just "Merge Sort             "),
+                (evaluate $ Q.msort xs, Just "Mean Pivot Quick Sort  "),
+                (Q.rsort' xs,           Just "Random Pivot QUick Sort")]
 
-benchmarkAll :: [Int] -> IO [[Int]]
-benchmarkAll xs = do
-  is  <- benchmark   I.sort   xs (Just "Insertion Sort")
-  ms  <- benchmark   M.sort   xs (Just "Merge Sort")
-  mqs <- benchmark   Q.msort  xs (Just "Mean Pivot Quick Sort")
-  rqs <- benchmarkIO Q.rsort' xs (Just "Random Pivot Quick Sort")
-  return [is, ms, mqs, rqs]
+timeAll :: [(IO [a], Maybe String)] -> IO [[a]]
+timeAll [] = return []
+timeAll ((f, l):fs) = do r  <- timeIO  f  l
+                         rs <- timeAll fs
+                         return $ r:rs
 
-benchmark :: Ord a => ([a] -> [a]) -> [a] -> Maybe String -> IO [a]
-benchmark sort xs msg = do
-  start <- getTime Monotonic
-  res   <- evaluate $ sort xs
-  end   <- getTime Monotonic
-  case msg of
-    Just msg -> putStr (msg ++ " >> ")
-                  >> fprint (timeSpecs % "\n") start end
-    Nothing -> fprint (timeSpecs % "\n") start end
-  return res
-
-benchmarkIO :: Ord a => ([a] -> IO [a]) -> [a] -> Maybe String -> IO [a]
-benchmarkIO sort xs msg = do
-  start <- getTime Monotonic
-  res   <- sort xs
-  end   <- getTime Monotonic
-  case msg of
-    Just msg -> putStr (msg ++ " >> ")
-                  >> fprint (timeSpecs % "\n") start end
-    Nothing -> fprint (timeSpecs % "\n") start end
-  return res
+timeIO :: IO a -> Maybe String -> IO a
+timeIO f msg = do start <- getTime Monotonic
+                  res   <- f
+                  end   <- getTime Monotonic
+                  case msg of
+                    Just msg -> putStr (msg ++ " >> ")
+                                  >> fprint (timeSpecs % "\n") start end
+                    Nothing -> fprint (timeSpecs % "\n") start end
+                  return res
 
