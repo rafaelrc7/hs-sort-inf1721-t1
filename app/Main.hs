@@ -23,14 +23,13 @@ executeInp :: IO [[[Int]]]
 executeInp = do
   inp <- getContents
   let (nTests:ls) = lines inp
-  let tests = parseTests (read nTests) ls
-  let results = executeTest <$> tests
-  sequence results
+  let tests       = parseTests (read nTests) ls
+  sequence $ executeTest <$> tests
 
 parseTest :: [String] -> (String, [Int], [String])
 parseTest (tName:tEls:ls) = (tName, ns, ls')
   where parseTest' :: Int -> [String] -> ([Int], [String])
-        parseTest' 0 ls = ([], ls)
+        parseTest' 0 ls     = ([], ls)
         parseTest' n (l:ls) = (read l : ns, ls')
           where (ns, ls') = parseTest' (n-1) ls
         (ns, ls') = parseTest' (read tEls) ls
@@ -54,10 +53,11 @@ benchmarkAll xs = do
 benchmark :: Ord a => ([a] -> [a]) -> [a] -> Maybe String -> IO [a]
 benchmark sort xs msg = do
   start <- getTime Monotonic
-  res <- evaluate $ sort xs
-  end <- getTime Monotonic
-  case msg of Just msg -> putStr (msg ++ " >> ")
-                >> fprint (timeSpecs % "\n") start end
-              Nothing -> fprint (timeSpecs % "\n") start end
+  res   <- evaluate $ sort xs
+  end   <- getTime Monotonic
+  case msg of
+    Just msg -> putStr (msg ++ " >> ")
+      >> fprint (timeSpecs % "\n") start end
+    Nothing -> fprint (timeSpecs % "\n") start end
   return res
 
