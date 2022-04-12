@@ -7,36 +7,39 @@ import Data.Array
 sort :: Ord a => [a] -> (Int -> [Int]) -> [a]
 sort []  _    = []
 sort [x] _    = [x]
-sort lst gaps = elems $ sort' arr (gaps (max `div` 2))
-                  where arr      = listToArray lst
-                        (_, max) = bounds arr
+sort lst gaps = elems $ runSTArray $ do stArr <- thaw arr
+                                        sort' stArr (gaps (max `div` 2)) max
+                                        return stArr
+                                          where arr      = listToArray lst
+                                                (_, max) = bounds arr
 
-sort' :: Ord a => Array Int a -> [Int] -> Array Int a
-sort' arr []     = arr
-sort' arr (g:gs) = sort' (sortGap arr g) gs
+sort' :: Ord a => STArray s Int a -> [Int] -> Int -> ST s ()
+sort' arr []     _   = return ()
+sort' arr (g:gs) max = (sortGap arr g max) >> sort' arr gs max
 
-sortGap :: Ord a => Array Int a -> Int -> Array Int a
-sortGap arr gap = sortGap' gap max gap arr
-                    where (_, max) = bounds arr
+sortGap :: Ord a => STArray s Int a -> Int -> Int -> ST s ()
+sortGap arr gap max = sortGap' gap max gap arr
 
-sortGap' :: Ord a => Int -> Int -> Int -> Array Int a -> Array Int a
+sortGap' :: Ord a => Int -> Int -> Int -> STArray s Int a -> ST s ()
 sortGap' offset max gap arr
-  | offset <= max = sortGap' (offset+1) max gap $ sortGapStep arr offset gap
-  | otherwise = arr
+  | offset <= max = sortGap' (offset+1) max gap arr >> sortGapStep arr offset gap
+  | otherwise = return ()
 
-sortGapStep :: Ord a => Array Int a -> Int -> Int -> Array Int a
-sortGapStep arr offset gap = sortGapStep' arr (arr ! offset) offset gap
+sortGapStep :: Ord a => STArray s Int a -> Int -> Int -> ST s ()
+sortGapStep arr offset gap = do val <- readArray arr offset
+                                sortGapStep' arr val offset gap
 
-sortGapStep' :: Ord a => Array Int a -> a -> Int -> Int -> Array Int a
+sortGapStep' :: Ord a => STArray s Int a -> a -> Int -> Int -> ST s ()
 sortGapStep' arr val offset gap
-  | offset >= gap && val < (arr ! (offset-gap)) =
-      let arr' = runSTArray $ do stArr <- thaw arr
-                                 readArray stArr (offset-gap) >>= writeArray stArr offset
-                                 return stArr
-      in sortGapStep' arr' val (offset-gap) gap
-  | otherwise = runSTArray $ do stArr <- thaw arr
-                                writeArray stArr offset val
-                                return stArr
+    | offset >= gap =
+      do tmp <- readArray arr (offset-gap)
+         if val < tmp then
+           do readArray arr (offset-gap) >>= writeArray arr offset
+              sortGapStep' arr val (offset-gap) gap
+         else
+           do writeArray arr offset val
+    | otherwise =
+           do writeArray arr offset val
 
 listToArray :: [a] -> Array Int a
 listToArray lst = listArray (0, (length lst) - 1) lst
