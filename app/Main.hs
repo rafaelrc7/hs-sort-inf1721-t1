@@ -10,6 +10,7 @@ import System.Clock      (getTime, Clock(..))
 import qualified InsertionSort as I
 import qualified MergeSort     as M
 import qualified QuickSort     as Q
+import qualified ShellSort     as S
 
 main :: IO ()
 main = executeInp >> putStrLn "Done."
@@ -37,10 +38,14 @@ parseTests n ls = (tLabel, tNums) : parseTests (n-1) ls'
 executeTest :: (String, [Int]) -> IO [[Int]]
 executeTest (label, xs) =
   putStrLn ("\nExecuting test " ++ label)
-    >> timeAll [(evaluate $ I.sort xs,  Just "Insertion Sort         "),
-                (evaluate $ M.sort xs,  Just "Merge Sort             "),
-                (evaluate $ Q.msort xs, Just "Mean Pivot Quick Sort  "),
-                (Q.rsort' xs,           Just "Random Pivot QUick Sort")]
+    >> timeAll [(evaluate $ I.sort xs,                Just "Insertion Sort         "),
+                (evaluate $ M.sort xs,                Just "Merge Sort             "),
+                (evaluate $ S.sort xs S.shellGap,     Just "Half Shell sort        "),
+                (evaluate $ S.sort xs S.fibGap,       Just "Fibonacci Shell sort   "),
+                (evaluate $ S.sort xs S.twoPowersGap, Just "Two Power Shell sort   "),
+                (evaluate $ Q.msort xs,               Just "Mean Pivot Quick Sort  "),
+                (evaluate $ Q.msort xs,               Just "Mean Pivot Quick Sort  "),
+                (Q.rsort' xs,                         Just "Random Pivot QUick Sort")]
 
 timeAll :: [(IO [a], Maybe String)] -> IO [[a]]
 timeAll [] = return []

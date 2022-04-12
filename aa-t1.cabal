@@ -29,6 +29,7 @@ executable aa-t1
         InsertionSort
       , MergeSort
       , QuickSort
+      , ShellSort
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -37,6 +38,7 @@ executable aa-t1
       , random
       , clock
       , formatting
+      , array
 
     hs-source-dirs:   app
     default-language: Haskell2010
