@@ -45,7 +45,7 @@ executeTest (label, xs) =
                 (evaluate $ S.sort xs S.twoPowersGap, Just "Two Power Shell sort   "),
                 (evaluate $ Q.msort xs,               Just "Mean Pivot Quick Sort  "),
                 (evaluate $ Q.msort xs,               Just "Mean Pivot Quick Sort  "),
-                (Q.rsort' xs,                         Just "Random Pivot QUick Sort")]
+                (Q.rsort' xs,                         Just "Random Pivot Quick Sort")]
 
 timeAll :: [(IO [a], Maybe String)] -> IO [[a]]
 timeAll [] = return []
