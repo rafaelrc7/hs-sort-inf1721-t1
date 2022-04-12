@@ -8,7 +8,7 @@ sort :: Ord a => [a] -> (Int -> [Int]) -> [a]
 sort []  _    = []
 sort [x] _    = [x]
 sort lst gaps = elems $ runSTArray $ do stArr <- thaw arr
-                                        sort' stArr (gaps (max `div` 2)) max
+                                        sort' stArr (gaps max) max
                                         return stArr
                                           where arr      = listToArray lst
                                                 (_, max) = bounds arr
@@ -21,32 +21,32 @@ sortGap :: Ord a => STArray s Int a -> Int -> Int -> ST s ()
 sortGap arr gap max = sortGap' gap max gap arr
 
 sortGap' :: Ord a => Int -> Int -> Int -> STArray s Int a -> ST s ()
-sortGap' offset max gap arr
-  | offset <= max = sortGap' (offset+1) max gap arr >> sortGapStep arr offset gap
+sortGap' i max gap arr
+  | i <= max  = sortGapStep arr i gap >> sortGap' (i+1) max gap arr
   | otherwise = return ()
 
 sortGapStep :: Ord a => STArray s Int a -> Int -> Int -> ST s ()
-sortGapStep arr offset gap = do val <- readArray arr offset
-                                sortGapStep' arr val offset gap
+sortGapStep arr i gap = do temp <- readArray arr i
+                           sortGapStep' arr temp i gap
 
 sortGapStep' :: Ord a => STArray s Int a -> a -> Int -> Int -> ST s ()
-sortGapStep' arr val offset gap
-    | offset >= gap =
-      do tmp <- readArray arr (offset-gap)
-         if val < tmp then
-           do readArray arr (offset-gap) >>= writeArray arr offset
-              sortGapStep' arr val (offset-gap) gap
+sortGapStep' arr temp j gap
+    | j >= gap =
+      do arrjgap <- readArray arr (j-gap)
+         if temp < arrjgap then
+           do readArray arr (j-gap) >>= writeArray arr j
+              sortGapStep' arr temp (j-gap) gap
          else
-           do writeArray arr offset val
+           do writeArray arr j temp
     | otherwise =
-           do writeArray arr offset val
+           do writeArray arr j temp
 
 listToArray :: [a] -> Array Int a
 listToArray lst = listArray (0, (length lst) - 1) lst
 
 shellGap :: Int -> [Int]
-shellGap 0   = []
-shellGap max = max : (shellGap $ max `div` 2)
+shellGap 1   = []
+shellGap max = let half = max `div` 2 in half : (shellGap $ half)
 
 fibGap :: Int -> [Int]
 fibGap max = reverse $ takeWhile (< max) fibs
