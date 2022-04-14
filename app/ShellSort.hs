@@ -4,14 +4,15 @@ import Control.Monad.ST
 import Data.Array.ST
 import Data.Array
 
+-- Função do shell sort, recebe uma lista e também uma função geradora de gap
 sort :: Ord a => [a] -> (Int -> [Int]) -> [a]
-sort []  _    = []
-sort [x] _    = [x]
-sort lst gaps = elems $ runSTArray $ do stArr <- thaw arr
-                                        sort' stArr (gaps max) max
-                                        return stArr
-                                          where arr      = listToArray lst
-                                                (_, max) = bounds arr
+sort []  _    = []  -- Caso base: lista vazia já está organizada
+sort [x] _    = [x] -- Caso base: lista com um elemento já está organizada
+sort lst gaps = elems $ runSTArray $ do stArr <- thaw arr -- transforma o array em um array mutável
+                                        sort' stArr (gaps max) max -- chama a função auxiliar recursiva que inicia o sort, gerando a lista de gaps a partir do tamanho do array
+                                        return stArr -- faz do array imutável de novo, que é então transformado novamente em uma lista pela função "elems"
+                                          where arr      = listToArray lst -- transforma lista lst em array imutavel arr
+                                                (_, max) = bounds arr -- pega o indice máximo do array
 
 sort' :: Ord a => STArray s Int a -> [Int] -> Int -> ST s ()
 sort' arr []     _   = return ()
@@ -41,22 +42,28 @@ sortGapStep' arr temp j gap
     | otherwise =
            do writeArray arr j temp
 
+-- Converte uma lista em um Array
 listToArray :: [a] -> Array Int a
 listToArray lst = listArray (0, (length lst) - 1) lst
 
+-- Recursivamente calcula o gap "padrão", começado pelo valor da metade do tamanho da lista, que é dividido por dois até chegar em 1;
 shellGap :: Int -> [Int]
 shellGap 1   = []
 shellGap max = let half = max `div` 2 in half : (shellGap $ half)
 
+-- Pega os elementos menores que max da lista de Fibonacci
 fibGap :: Int -> [Int]
 fibGap max = reverse $ takeWhile (< max) fibs
 
+-- Lista infinita dos números da sequência de Fibonacci
 fibs :: [Int]
 fibs = 1 : 1 : zipWith (+) fibs (tail fibs)
 
+-- Pega os elementos menores que max da lista de potências de dois
 twoPowersGap :: Int -> [Int]
 twoPowersGap max = reverse $ takeWhile (< max) twoPowers
 
+-- Lista infinita de potências de dois
 twoPowers :: [Int]
 twoPowers = iterate (*2)  1
 
