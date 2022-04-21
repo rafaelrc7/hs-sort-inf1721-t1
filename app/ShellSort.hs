@@ -14,39 +14,73 @@ sort lst gaps = elems $ runSTArray $ do stArr <- thaw arr -- transforma o array 
                                           where arr      = listToArray lst -- transforma lista lst em array imutavel arr
                                                 (_, max) = bounds arr -- pega o indice máximo do array
 
+-- loop principal do shellsort que executa o insertion sort em cima de um
+-- subarray composto por elementos separados por g posições
 sort' :: Ord a => STArray s Int a -> [Int] -> Int -> ST s ()
+-- Caso base: acabaram os gaps, portanto algorítimo terminou.
 sort' arr []     _   = return ()
+-- Passo recursivo (loop): faz o sort, usando a função sortGap, no subarray do gap g
 sort' arr (g:gs) max = (sortGap arr g max) >> sort' arr gs max
 
+
+-- loop do insertion sort sobre os subarrays formados por elementos separados
+-- por um intervalo gap
+
+-- Função que inicia o loop do insertion sort em cima dos subarrays formados
+-- pelo gap
 sortGap :: Ord a => STArray s Int a -> Int -> Int -> ST s ()
 sortGap arr gap max = sortGap' gap max gap arr
+  where sortGap' :: Ord a => Int -> Int -> Int -> STArray s Int a -> ST s ()
+        -- Função recursiva do loop em si.
+        sortGap' i max gap arr
+          -- Chama a função que faz o sort em cima do subarray que começa no index i
+          | i <= max  = sortGapStep arr i gap >> sortGap' (i+1) max gap arr
+          -- Fim do loop
+          | otherwise = return ()
 
-sortGap' :: Ord a => Int -> Int -> Int -> STArray s Int a -> ST s ()
-sortGap' i max gap arr
-  | i <= max  = sortGapStep arr i gap >> sortGap' (i+1) max gap arr
-  | otherwise = return ()
 
+-- Função que faz sort no subarray que começa em i e formado por elementos a
+-- cada gap elementos
 sortGapStep :: Ord a => STArray s Int a -> Int -> Int -> ST s ()
 sortGapStep arr i gap = do temp <- readArray arr i
                            sortGapStep' arr temp i gap
+  where sortGapStep' :: Ord a => STArray s Int a -> a -> Int -> Int -> ST s ()
+        sortGapStep' arr temp j gap
+            | j >= gap =
+              do arrjgap <- readArray arr (j-gap)
+                 if temp < arrjgap then
+                   do writeArray arr j arrjgap
+                      sortGapStep' arr temp (j-gap) gap
+                 else
+                   writeArray arr j temp
+            | otherwise = writeArray arr j temp
 
-sortGapStep' :: Ord a => STArray s Int a -> a -> Int -> Int -> ST s ()
-sortGapStep' arr temp j gap
-    | j >= gap =
-      do arrjgap <- readArray arr (j-gap)
-         if temp < arrjgap then
-           do readArray arr (j-gap) >>= writeArray arr j
-              sortGapStep' arr temp (j-gap) gap
-         else
-           do writeArray arr j temp
-    | otherwise =
-           do writeArray arr j temp
+-------------------------------------
+-- FUNÇÕES AUXILIARES DE UTILIDADE --
+-------------------------------------
 
 -- Converte uma lista em um Array
 listToArray :: [a] -> Array Int a
 listToArray lst = listArray (0, (length lst) - 1) lst
 
--- Recursivamente calcula o gap "padrão", começado pelo valor da metade do tamanho da lista, que é dividido por dois até chegar em 1;
+---------------------------------------------------
+-- FUNÇÕES PARA GERAR VALORES DE INTERVALO (GAP) --
+---------------------------------------------------
+
+-- Pega os elementos menores que max da lista de potências de dois
+powersOfTwoGap :: Int -> [Int]
+powersOfTwoGap max = reverse $ takeWhile (< max) powersOfTwo
+
+-- Lista infinita de potências de dois
+powersOfTwo :: [Int]
+powersOfTwo = iterate (*2)  1
+
+-- Gaps baseados na sequência 2^k - 1 (potencias de dois menos um).
+hibbardGap :: Int -> [Int]
+hibbardGap max = reverse $ takeWhile (<= max `div` 2) [2^k - 1 | k <- [0 ..]]
+
+-- Recursivamente calcula o gap "padrão", começado pelo valor da metade do
+-- tamanho da lista, que é dividido por dois até chegar em 1;
 shellGap :: Int -> [Int]
 shellGap 1   = []
 shellGap max = let half = max `div` 2 in half : (shellGap $ half)
@@ -58,12 +92,4 @@ fibGap max = reverse $ takeWhile (< max) fibs
 -- Lista infinita dos números da sequência de Fibonacci
 fibs :: [Int]
 fibs = 1 : 1 : zipWith (+) fibs (tail fibs)
-
--- Pega os elementos menores que max da lista de potências de dois
-twoPowersGap :: Int -> [Int]
-twoPowersGap max = reverse $ takeWhile (< max) twoPowers
-
--- Lista infinita de potências de dois
-twoPowers :: [Int]
-twoPowers = iterate (*2)  1
 

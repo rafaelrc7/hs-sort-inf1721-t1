@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main where
 
 import Control.Exception  (evaluate)
@@ -57,14 +55,12 @@ executeTest :: Bool -> (String, [Int]) -> IO [[Int]]
 executeTest validate (label, xs) =
   do putStrLn ("\nExecuting test " ++ label)
      g <- newStdGen
-     timeAll validate [(evaluate $ I.sort xs,                Just "Insertion Sort         "),
-                       (evaluate $ M.sort xs,                Just "Merge Sort             "),
-                       (evaluate $ S.sort xs S.shellGap,     Just "Half Shell sort        "),
-                       (evaluate $ S.sort xs S.fibGap,       Just "Fibonacci Shell sort   "),
-                       (evaluate $ S.sort xs S.twoPowersGap, Just "Two Power Shell sort   "),
-                       (evaluate $ Q.msort xs,               Just "Mean Pivot Quick Sort  "),
-                       (evaluate $ Q.msort xs,               Just "Mean Pivot Quick Sort  "),
-                       (evaluate $ fst $ Q.rsort xs g,       Just "Random Pivot Quick Sort")]
+     timeAll validate [(evaluate $ I.sort xs,                  Just "Insertion Sort         "),
+                       (evaluate $ M.sort xs,                  Just "Merge Sort             "),
+                       (evaluate $ S.sort xs S.hibbardGap,     Just "Hibbard Shell sort     "),
+                       (evaluate $ S.sort xs S.powersOfTwoGap, Just "Power of two Shell sort"),
+                       (evaluate $ Q.msort xs,                 Just "Mean Pivot Quick Sort  "),
+                       (evaluate $ fst $ Q.rsort xs g,         Just "Random Pivot Quick Sort")]
 
 timeAll :: Ord a => Bool -> [(IO [a], Maybe String)] -> IO [[a]]
 timeAll _        []          = return []
