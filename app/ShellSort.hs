@@ -41,19 +41,21 @@ sortGap arr gap max = sortGap' gap max gap arr
 
 -- Função que faz sort no subarray que começa em i e formado por elementos a
 -- cada gap elementos
+
+-- inicialização do loop do "insertion sort" em cima do h-array usando o dado gap
 sortGapStep :: Ord a => STArray s Int a -> Int -> Int -> ST s ()
-sortGapStep arr i gap = do temp <- readArray arr i
-                           sortGapStep' arr temp i gap
+sortGapStep arr i gap = do temp <- readArray arr i     -- pega o número atual, que será comparado com anteriores
+                           sortGapStep' arr temp i gap -- inicia o loop com a função recursiva
   where sortGapStep' :: Ord a => STArray s Int a -> a -> Int -> Int -> ST s ()
         sortGapStep' arr temp j gap
-            | j >= gap =
-              do arrjgap <- readArray arr (j-gap)
-                 if temp < arrjgap then
+            | j >= gap =  -- executa se j for maior ou igual que o gap
+              do arrjgap <- readArray arr (j-gap) -- lê o item da posição atual
+                 if temp < arrjgap then -- compara o o item do início do loop
                    do writeArray arr j arrjgap
-                      sortGapStep' arr temp (j-gap) gap
+                      sortGapStep' arr temp (j-gap) gap -- move o item atual pra posição anterior caso seja maior que temp
                  else
-                   writeArray arr j temp
-            | otherwise = writeArray arr j temp
+                   writeArray arr j temp -- fim pois está ordenado
+            | otherwise = writeArray arr j temp -- encerra o loop colocando o item movido na posição atual
 
 -------------------------------------
 -- FUNÇÕES AUXILIARES DE UTILIDADE --
